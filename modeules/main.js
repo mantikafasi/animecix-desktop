@@ -11,6 +11,7 @@ var path_1 = __importDefault(require("path"));
 var downloader_1 = require("./downloader");
 var electron_updater_1 = require("electron-updater");
 var adblocker_electron_1 = require("@cliqz/adblocker-electron");
+var prompt = require('electron-prompt');
 var Main = /** @class */ (function () {
     function Main(dir) {
         var _this = this;
@@ -244,7 +245,43 @@ var Main = /** @class */ (function () {
             });
             //this.win.webContents.session.clearCache()
             _this.win.loadURL("https://animecix.com");
-            //this.win.webContents.openDevTools()
+            _this.win.webContents.on("did-stop-loading", function () {
+                var _a;
+                var url = (_a = _this.win) === null || _a === void 0 ? void 0 : _a.webContents.getURL();
+                console.log(url);
+                if (_this.win != null) {
+                    _this.win.webContents.executeJavaScript("console.log(\"".concat(url, "\")"));
+                    if (url != null && url.includes("episode")) {
+                        console.log(url);
+                        _this.win.webContents.executeJavaScript("\n                        \n                        button1 = document.createElement(\"button\");\n                        button1.className = \"mat-focus-indicator mat-button mat-button-base\";\n                        span = document.createElement(\"span\");\n                        span.className = \"mat-button-wrapper\";\n                        span.innerHTML = \"Oda Olu\u015Ftur\";\n                        button1.appendChild(span);\n                        span.onclick = function(){electron.ipcRenderer.send(\"createRoom\");};\n                        var existCondition = setInterval(function() {\n                            jwvideo = document.getElementsByClassName(\"jw-video\");\n                            if (jwvideo.length > 0) {\n                                document.getElementsByClassName(\"rating\")[0].appendChild(button1);\n                               clearInterval(existCondition);\n                            }\n                            console.log(jwvideo.length)\n                           }, 1000); // check every 100ms\n                           \n                           setInterval(function() {\n                            document.getElementsByClassName(\"rating\")[0].appendChild(button1);\n                            clearInterval(existCondition);\n                           }, 5000); // check every 100ms\n                        ");
+                    }
+                    else {
+                        _this.win.webContents.executeJavaScript("\n                        button = document.createElement(\"button\");\n                        button.className = \"mat-focus-indicator mat-button mat-button-base\";\n                        span = document.createElement(\"span\");\n                        span.className = \"mat-button-wrapper\";\n                        span.innerHTML = \"Odaya Kat\u0131l\";\n                        button.appendChild(span);\n                        span.onclick = function(){electron.ipcRenderer.send(\"joinRoom\");};\n                        var existCondition = setInterval(function() {\n                            if (document.getElementById(\"appMenu\") != null) {\n                               clearInterval(existCondition);\n                               document.getElementById(\"appMenu\").firstChild.firstChild.firstChild.appendChild(button)                    \n                            }\n                           }, 100); // check every 100ms\n                        ");
+                    }
+                }
+            });
+            _this.win.webContents.openDevTools();
+            electron_1.ipcMain.on("joinRoom", function (event) {
+                console.log("joinRoom");
+                prompt({
+                    title: 'Oda Kodunu Gir',
+                    label: 'Oda kodunu gir',
+                    value: '',
+                    inputAttrs: {
+                        type: 'text'
+                    },
+                    type: 'input'
+                })
+                    .then(function (r) {
+                    if (r === null) {
+                        console.log('user cancelled');
+                    }
+                    else {
+                        console.log('result', r);
+                    }
+                })
+                    .catch(console.error);
+            });
             electron_1.ipcMain.on("setPaused", function (event, paused) {
                 _this.paused = paused;
             });
