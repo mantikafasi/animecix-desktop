@@ -11,6 +11,7 @@ var path_1 = __importDefault(require("path"));
 var downloader_1 = require("./downloader");
 var electron_updater_1 = require("electron-updater");
 var adblocker_electron_1 = require("@cliqz/adblocker-electron");
+var DiscordRPC = require('discord-rpc');
 var Main = /** @class */ (function () {
     function Main(dir) {
         var _this = this;
@@ -23,6 +24,7 @@ var Main = /** @class */ (function () {
         this.intervals = [];
         this.downloadsWindow = null;
         this.paused = false;
+        this.client = new DiscordRPC.Client({ transport: 'ipc' });
         this.intervals.push(setInterval(function () {
             _this.sendDownloads();
         }, 500));
@@ -125,13 +127,52 @@ var Main = /** @class */ (function () {
     Main.prototype.getReferer = function () {
         return this.isOdnok ? null : this.currentFrameUrl;
     };
+    Main.prototype.updateRPC = function (data) {
+        data.startTimestamp = new Date(data.position * 1000);
+        data.endTimestamp = new Date(data.duration * 1000);
+        var stateString = data.startTimestamp.getMinutes() + ":" + data.startTimestamp.getSeconds() + "/" + data.endTimestamp.getMinutes() + ":" + data.endTimestamp.getSeconds();
+        if (data.state) {
+            data.smallimagekey = "play";
+            data.smallImageText = "Oynatılıyor";
+            data.endTimestamp = new Date();
+            data.endTimestamp.setSeconds(data.endTimestamp.getSeconds());
+            data.startTimestamp = new Date();
+            data.startTimestamp.setSeconds(data.startTimestamp.getSeconds());
+        }
+        else {
+            data.smallimagekey = "pause";
+            data.smallImageText = "Durduruldu";
+            data.endTimestamp = null;
+            data.startTimestamp = null;
+        }
+        this.client.setActivity({
+            details: data.title,
+            startTimestamp: data["startTimestamp"],
+            endTimestamp: data["endTimestamp"],
+            state: stateString,
+            largeImageKey: 'animecix',
+            largeImageText: 'Animecix',
+            smallImageKey: data["smallimagekey"],
+            smallImageText: data["smallImageText"],
+            instance: false,
+        });
+    };
     Main.prototype.run = function () {
         var _this = this;
         electron_1.app.on("ready", function () {
+            var clientId = '950857480781590548';
+            var startTimestamp = new Date();
+            _this.client.on('ready', function () {
+                //console.log('Logged in as', client.application.name);
+                //console.log('Authed for user', client.user.username);
+            });
+            // Log in to RPC with client id
+            _this.client.login({ clientId: clientId });
             electron_1.app.setAppUserModelId("AnimeciX");
             _this.win = new electron_1.BrowserWindow({
                 webPreferences: {
                     nodeIntegration: true,
+                    webSecurity: false,
                     contextIsolation: false,
                     nodeIntegrationInSubFrames: true,
                     preload: _this.dir + "/files/preload.js",
@@ -140,6 +181,16 @@ var Main = /** @class */ (function () {
                 title: "AnimeciX",
                 icon: path_1.default.join(_this.dir, "files", "icon.png"),
                 frame: false
+            });
+            _this.win.on("page-title-updated", function () {
+                var _a;
+                _this.client.setActivity({
+                    details: "Dolan\u0131yo",
+                    state: (_a = _this.win) === null || _a === void 0 ? void 0 : _a.getTitle(),
+                    largeImageKey: 'animecix',
+                    largeImageText: 'Animecix',
+                    instance: false,
+                });
             });
             /* this.win.webContents.on('did-fail-load', () => {
                  setTimeout(this.win.reload, 2000)
@@ -249,11 +300,14 @@ var Main = /** @class */ (function () {
                 _this.paused = paused;
             });
             electron_1.ipcMain.on("getDetails", function (event, ok) {
+                var _a;
                 event.sender.send("details", _this.currentFrameUrl, _this.identifier);
                 if (_this.win != null) {
                     _this.win.webContents.mainFrame.frames.forEach(function (frame) {
                         frame.send("details", _this.currentFrameUrl, _this.identifier);
                     });
+                    console.log("executing");
+                    (_a = _this.win) === null || _a === void 0 ? void 0 : _a.webContents.executeJavaScript(" \n\n                    var interval =setInterval(()=>{\n                        var iframe = document.getElementById(\"iframe\").contentDocument || document.getElementById(\"iframe\").contentWindow.document\n                        var jwp = iframe.getElementsByClassName(\"jw-video\")[0];\n                        if (jwp != null) {\n                            const ipcRenderer = nodeRequire('electron').ipcRenderer\n\n                                jwp.onplay = function () {\n                                    var title = document.getElementsByClassName(\"title\")[0].innerText;\n                                    ipcRenderer.send(\"updateRPC\", {duration:Math.floor(jwp.duration),position:Math.floor(jwp.currentTime),\n                                    title:title,state:true});\n                                };\n                            \n                            \n                                jwp.onpause = function () {\n                                    var title = document.getElementsByClassName(\"title\")[0].innerText;\n                                    ipcRenderer.send(\"updateRPC\", {duration:Math.floor(jwp.duration),position:Math.floor(jwp.currentTime),\n                                    title:title,state:false});\n                                };\n                                clearInterval(interval)\n                         } \n                         console.log(\"searched\")\n    \n                    },1000)\n                    \n                        ");
                 }
             });
             electron_1.ipcMain.on("Odnok", function (event, ok) {
@@ -306,6 +360,10 @@ var Main = /** @class */ (function () {
                         }
                     });
                 }
+            });
+            electron_1.ipcMain.on("updateRPC", function (event, data) {
+                console.log(data);
+                _this.updateRPC(data);
             });
             electron_1.ipcMain.on("Standart", function (event, file) {
                 _this.standart = file;
