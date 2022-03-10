@@ -5,4 +5,3 @@ files/client
 files/ublock
 files/loader.js
 node_modules
-*.ts
