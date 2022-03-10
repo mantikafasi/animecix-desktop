@@ -128,27 +128,23 @@ var Main = /** @class */ (function () {
         return this.isOdnok ? null : this.currentFrameUrl;
     };
     Main.prototype.updateRPC = function (data) {
-        data.startTimestamp = new Date(data.position * 1000);
-        data.endTimestamp = new Date(data.duration * 1000);
-        var stateString = data.startTimestamp.getMinutes() + ":" + data.startTimestamp.getSeconds() + "/" + data.endTimestamp.getMinutes() + ":" + data.endTimestamp.getSeconds();
+        var startTimestamp = new Date(data.position * 1000);
+        var endTimestamp = new Date();
+        endTimestamp.setSeconds(data.duration - data.position);
+        var endTimestamp2 = new Date(1000 * (data.duration));
+        var stateString = startTimestamp.getMinutes() + ":" + startTimestamp.getSeconds() + "/" + endTimestamp2.getMinutes() + ":" + endTimestamp2.getSeconds();
         if (data.state) {
             data.smallimagekey = "play";
             data.smallImageText = "Oynatılıyor";
-            data.endTimestamp = new Date();
-            data.endTimestamp.setSeconds(data.endTimestamp.getSeconds());
-            data.startTimestamp = new Date();
-            data.startTimestamp.setSeconds(data.startTimestamp.getSeconds());
         }
         else {
             data.smallimagekey = "pause";
             data.smallImageText = "Durduruldu";
-            data.endTimestamp = null;
-            data.startTimestamp = null;
+            endTimestamp = null;
         }
         this.client.setActivity({
             details: data.title,
-            startTimestamp: data["startTimestamp"],
-            endTimestamp: data["endTimestamp"],
+            endTimestamp: endTimestamp,
             state: stateString,
             largeImageKey: 'animecix',
             largeImageText: 'Animecix',
@@ -307,7 +303,7 @@ var Main = /** @class */ (function () {
                         frame.send("details", _this.currentFrameUrl, _this.identifier);
                     });
                     console.log("executing");
-                    (_a = _this.win) === null || _a === void 0 ? void 0 : _a.webContents.executeJavaScript(" \n\n                    var interval =setInterval(()=>{\n                        var iframe = document.getElementById(\"iframe\").contentDocument || document.getElementById(\"iframe\").contentWindow.document\n                        var jwp = iframe.getElementsByClassName(\"jw-video\")[0];\n                        if (jwp != null) {\n                            const ipcRenderer = nodeRequire('electron').ipcRenderer\n\n                                jwp.onplay = function () {\n                                    var title = document.getElementsByClassName(\"title\")[0].innerText;\n                                    ipcRenderer.send(\"updateRPC\", {duration:Math.floor(jwp.duration),position:Math.floor(jwp.currentTime),\n                                    title:title,state:true});\n                                };\n                            \n                            \n                                jwp.onpause = function () {\n                                    var title = document.getElementsByClassName(\"title\")[0].innerText;\n                                    ipcRenderer.send(\"updateRPC\", {duration:Math.floor(jwp.duration),position:Math.floor(jwp.currentTime),\n                                    title:title,state:false});\n                                };\n                                clearInterval(interval)\n                         } \n                         console.log(\"searched\")\n    \n                    },1000)\n                    \n                        ");
+                    (_a = _this.win) === null || _a === void 0 ? void 0 : _a.webContents.executeJavaScript(" \n\n                    var interval =setInterval(()=>{\n                        var iframe = document.getElementById(\"iframe\").contentDocument || document.getElementById(\"iframe\").contentWindow.document\n                        var jwp = iframe.getElementsByClassName(\"jw-video\")[0];\n                        if (jwp != null) {\n                            var updateTimeInterval = setInterval(()=>{\n                                var title = document.getElementsByClassName(\"title\")[0].innerText;\n                                ipcRenderer.send(\"updateRPC\", {duration:Math.floor(jwp.duration),position:Math.floor(jwp.currentTime),\n                                title:title,state:!jwp.paused});\n                            },10000);\n\n                            const ipcRenderer = nodeRequire('electron').ipcRenderer\n                            var title = document.getElementsByClassName(\"title\")[0].innerText;\n                            ipcRenderer.send(\"updateRPC\", {duration:Math.floor(jwp.duration),position:Math.floor(jwp.currentTime),\n                                title:title,state:true});\n\n                                // anime sayfas\u0131 a\u00E7\u0131l\u0131r a\u00E7\u0131lmaz RPC nin g\u00FCnellenmesi sa\u011Flaancak.\n\n\n                                jwp.onplay = function () {\n                                    ipcRenderer.send(\"updateRPC\", {duration:Math.floor(jwp.duration),position:Math.floor(jwp.currentTime),\n                                    title:title,state:true});\n                                };\n                            \n                            \n                                jwp.onpause = function () {\n                                    ipcRenderer.send(\"updateRPC\", {duration:Math.floor(jwp.duration),position:Math.floor(jwp.currentTime),\n                                    title:title,state:false});\n                                };\n                                clearInterval(interval)\n                         } \n                         console.log(\"searched\")\n    \n                    },1000)\n                    \n                        ");
                 }
             });
             electron_1.ipcMain.on("Odnok", function (event, ok) {
