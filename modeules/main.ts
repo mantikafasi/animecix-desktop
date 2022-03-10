@@ -148,8 +148,7 @@ export class Main {
     updateRPC(data: any) {
         var startTimestamp = new Date(data.position * 1000);
 
-        var timeLeft: any = new Date();
-        timeLeft.setSeconds(data.duration - data.position)
+        var timeLeft: any = new Date(Date.now() + 1000*(data.duration - data.position) );
 
         var endTimestamp: any = new Date(data.duration * 1000);
 
@@ -192,7 +191,7 @@ export class Main {
         app.on("ready", () => {
 
             // Discord RPC ye client id ile giriş yap
-            this.client.login({ '950857480781590548' });
+            this.client.login({ clientId : '950857480781590548' });
 
             app.setAppUserModelId("AnimeciX")
             this.win = new BrowserWindow({
